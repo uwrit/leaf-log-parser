@@ -12,10 +12,8 @@ namespace LeafLogParser
     {
         static AppSettings settings = new AppSettings();
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            LoadSettings(args);
-
             /* VS debug
             settings.SourceDirPath = "C:/NicWork/apps/logs/leaf";
             settings.OutputDirPath = settings.SourceDirPath + "/archive";
@@ -27,15 +25,24 @@ namespace LeafLogParser
             settings.MoveCompleted = true;
             */
 
+            Console.WriteLine($"Starting up Leaf Log Reader...");
+
+            LoadSettings(args);
             CheckDirectories();
-            CheckDatabase();
+            await CheckDatabase();
 
             var manager = new LogEntryTransferManager(settings);
             var reader = new LogReader(settings, manager);
 
+            if (!reader.FilesFound)
+            {
+                Console.WriteLine($"No files found to parse. Exiting...");
+                return;
+            }
+
             while (reader.Read())
             {
-                reader.Process();
+                await reader.Process();
             }
 
             Console.WriteLine($"Successfully copied {manager.CopyCount} log entries from {reader.FileCount} files.");
@@ -88,7 +95,7 @@ namespace LeafLogParser
             Console.WriteLine(message);
         }
 
-        static void CheckDatabase()
+        static async Task CheckDatabase()
         {
             var message = "";
             var sql = $"SELECT TOP 1 * FROM {settings.DbTable}";
@@ -100,7 +107,7 @@ namespace LeafLogParser
 
                     conn.Open();
                     var cmd = new SqlCommand(sql, conn);
-                    cmd.ExecuteNonQuery();
+                    await cmd.ExecuteNonQueryAsync();
 
                     message = $"SQL Server '{conn.Database}', table '{settings.DbTable}' successfully connected.";
                     Console.WriteLine(message);

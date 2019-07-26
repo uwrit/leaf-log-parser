@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Model
@@ -17,6 +18,8 @@ namespace Model
         LogEntryTransferManager manager { get; set; }
 
         public int FileCount => files.Length;
+
+        public bool FilesFound => files.Length > 0;
 
         public LogReader(AppSettings settings, LogEntryTransferManager manager)
         {
@@ -35,7 +38,7 @@ namespace Model
             return false;
         }
 
-        public void Process()
+        public async Task Process()
         {
             var curr = files[currFileIndex];
             var leftBrace = '{';
@@ -79,7 +82,7 @@ namespace Model
 
                                 if (entries.Count == settings.BatchSize)
                                 {
-                                    manager.ToSql(entries);
+                                    await manager.ToSql(entries);
                                     entries.Clear();
                                 }
                             }
@@ -87,25 +90,26 @@ namespace Model
                             {
                                 Console.WriteLine($"Unparsable log entry found. JSON: {json}. Error: {ex.Message}");
                             }
-                            
+
                             chars.Clear();
                         }
                     }
                 }
+
                 if (entries.Count > 0)
                 {
-                    manager.ToSql(entries);
+                    await manager.ToSql(entries);
                     entries.Clear();
                 }
             }
 
-            if (settings.MoveCompleted)
+            if (!settings.PreventArchive)
             {
                 var outpath = $"{settings.OutputDirPath}{Path.DirectorySeparatorChar}{Path.GetFileName(curr)}";
                 File.Move(curr, outpath);
             }
 
-            Console.WriteLine($"Completed file {curr}...");
+            Console.WriteLine($"Completed {curr}...");
         }
 
         void GetFiles()

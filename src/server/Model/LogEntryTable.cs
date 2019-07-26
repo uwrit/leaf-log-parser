@@ -54,7 +54,7 @@ namespace Model
                 foreach (var prop in props)
                 {
                     var val = prop.GetValue(rec);
-                    row[prop.Name] = val; // val == null || string.IsNullOrWhiteSpace(val.ToString()) ? null : val;
+                    row[prop.Name] = val == null || string.IsNullOrWhiteSpace(val.ToString()) ? null : val;
                 }
 
                 table.Rows.Add(row);

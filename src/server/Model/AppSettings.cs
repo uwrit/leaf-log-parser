@@ -69,12 +69,12 @@ namespace Model
         public bool IgnoreToday { get; set; }
 
         [Option(
-            'm',
-            "move-to-archive",
+            'n',
+            "no-archive",
             Required = false,
-            Default = true,
-            HelpText = "Boolean indicating whether completed log files should be moved to the output."
+            Default = false,
+            HelpText = "Boolean indicating whether completed log files should not be moved to the output directory after processing."
         )]
-        public bool MoveCompleted { get; set; }
+        public bool PreventArchive { get; set; }
     }
 }

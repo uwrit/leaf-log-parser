@@ -4,6 +4,7 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Reflection;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Model
 {
@@ -23,7 +24,7 @@ namespace Model
             this.CopyCount = 0;
         }
 
-        public void ToSql(IEnumerable<LogEntry> entries)
+        public async Task ToSql(IEnumerable<LogEntry> entries)
         {
             table.Load(entries);
             CopyCount += entries.Count();
@@ -36,7 +37,7 @@ namespace Model
                     bc.ColumnMappings.Add(prop.Name, prop.Name);
                 }
 
-                bc.WriteToServer(table.Rows);
+                await bc.WriteToServerAsync(table.Rows);
             }
 
             table.Clear();
