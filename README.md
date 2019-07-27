@@ -8,7 +8,7 @@
 
 ## What does it do?
 
-The Leaf API logs a vast amount of useful data on to log files as users use the application. These include data on what users are querying, how long queries take, SQL compilation, logins, errors, security, and more. Each log entry within a log file is structured as a [JSON](https://www.json.org/) Object of the form:
+The Leaf API logs a vast amount of useful data to log files as users use the application. These include data on what users are querying, how long queries take, SQL compilation, logins, errors, security, and more. Each log entry within a log file is structured as a [JSON](https://www.json.org/) Object of the form:
 
 ```
 // Example
@@ -22,7 +22,7 @@ The Leaf API logs a vast amount of useful data on to log files as users use the 
 }
 ```
 
-Logging to files (as opposed to directly to a database) is an industry standard and ensures that the Leaf API responds to user requests quickly and efficiently. Yet for analytical and auditing reasons it is critical to ensure that log information is copied to a technology better suited to analytics and not stuck in hard-to-read files.
+Logging to files (as opposed to directly to a database) is an industry standard and ensures that the Leaf API responds to user requests quickly and efficiently. Yet for analytical and auditing purposes it is critical to ensure that log information is copied to a technology better suited to analysis and not stuck in hard-to-read files.
 
 One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the *contents* of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
 
