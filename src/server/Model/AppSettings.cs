@@ -29,13 +29,14 @@ namespace Model
             "database",
             Required = true,
             HelpText = "The database connection string to connect to SQL Server. " +
-                       "Should be of the form 'Server=<address>;Database=<db_name>;User Id=<user_name>;'Password=<pass>;Integrated Security=<optional, if using Windows auth then 'SSPI', omit pass and user>.")]
+                       "Should be of the form 'Server=<address>;Database=<db_name>;User Id=<user_name>;Password=<pass>;Integrated Security=<optional, if using Windows auth then 'SSPI', omit pass and user>.'")]
         public string DbConnection { get; set; }
 
         [Option(
             't',
             "table",
-            Required = true,
+            Required = false,
+            Default = "dbo.UsageLog",
             HelpText = "The database table in which to copy the log file information into. Should be of the form <schema>.<table_name>."
         )]
         public string DbTable { get; set; }
@@ -61,12 +62,12 @@ namespace Model
 
         [Option(
             'c',
-            "ignore-today",
+            "ignore-current",
             Required = false,
             Default = true,
             HelpText = "Boolean indicating whether files named with the same date as the current date should be ignored."
         )]
-        public bool IgnoreToday { get; set; }
+        public bool IgnoreCurrent { get; set; }
 
         [Option(
             'n',

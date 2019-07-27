@@ -9,31 +9,32 @@ namespace Model
 {
     public class LogReader
     {
-        AppSettings settings { get; set; }
-        LogEntryTransferManager manager { get; set; }
+        const char LeftBrace = '{';
+        const char RightBrace = '}';
+        readonly HashSet<string> IgnoredTypes;
 
-        HashSet<string> ignoredTypes;
-        string[] files = new string[] { };
-        int currFileIndex = -1;
-        const char leftBrace = '{';
-        const char rightBrace = '}';
+        AppSettings Settings { get; set; }
+        LogEntryTransferManager Manager { get; set; }
 
-        public int FileCount => files.Length;
+        string[] Files = new string[] { };
+        int CurrFileIndex = -1;
 
-        public bool FilesFound => files.Length > 0;
+        public int FileCount => Files.Length;
+
+        public bool FilesFound => Files.Length > 0;
 
         public LogReader(AppSettings settings, LogEntryTransferManager manager)
         {
-            this.settings = settings;
-            this.manager = manager;
-            this.ignoredTypes = new HashSet<string>(settings.IgnoredTypes);
+            this.Settings = settings;
+            this.Manager = manager;
+            this.IgnoredTypes = new HashSet<string>(settings.IgnoredTypes);
             GetFiles();
         }
 
         public bool Read()
         {
-            currFileIndex++;
-            if (currFileIndex <= files.Length - 1)
+            CurrFileIndex++;
+            if (CurrFileIndex <= Files.Length - 1)
             {
                 return true;
             }
@@ -42,10 +43,9 @@ namespace Model
 
         public async Task Process()
         {
-            var curr = files[currFileIndex];
+            var curr = Files[CurrFileIndex];
             var braceCount = 0;
             var chars = new List<char>();
-            var entries = new List<LogEntry>();
             char ch;
             
             using (StreamReader sr = new StreamReader(curr))
@@ -55,11 +55,11 @@ namespace Model
                     ch = (char)sr.Read();
                     chars.Add(ch);
 
-                    if (ch == leftBrace)
+                    if (ch == LeftBrace)
                     {
                         braceCount++;
                     }
-                    else if (ch == rightBrace)
+                    else if (ch == RightBrace)
                     {
                         braceCount--;
 
@@ -71,18 +71,17 @@ namespace Model
                                 var record = JsonConvert.DeserializeObject<LogRecord>(json);
                                 var entry = record.ToLogEntry();
 
-                                if (ignoredTypes.Contains(entry.MessageTemplate))
+                                if (IgnoredTypes.Contains(entry.MessageTemplate))
                                 {
                                     chars.Clear();
                                     continue;
                                 }
 
-                                entries.Add(entry);
+                                Manager.Add(entry);
 
-                                if (entries.Count == settings.BatchSize)
+                                if (Manager.RowCount == Settings.BatchSize)
                                 {
-                                    await manager.ToSql(entries);
-                                    entries.Clear();
+                                    await Manager.ToSql();
                                 }
                             }
                             catch (Exception ex)
@@ -95,16 +94,15 @@ namespace Model
                     }
                 }
 
-                if (entries.Count > 0)
+                if (Manager.RowCount > 0)
                 {
-                    await manager.ToSql(entries);
-                    entries.Clear();
+                    await Manager.ToSql();
                 }
             }
 
-            if (!settings.PreventArchive)
+            if (!Settings.PreventArchive)
             {
-                var outpath = $"{settings.OutputDirPath}{Path.DirectorySeparatorChar}{Path.GetFileName(curr)}";
+                var outpath = $"{Settings.OutputDirPath}{Path.DirectorySeparatorChar}{Path.GetFileName(curr)}";
                 File.Move(curr, outpath);
             }
 
@@ -115,26 +113,26 @@ namespace Model
         {
             var ext = "log";
 
-            if (!string.IsNullOrWhiteSpace(settings.SpecificFile))
+            if (!string.IsNullOrWhiteSpace(Settings.SpecificFile))
             {
-                var path = $"{settings.SourceDirPath}{Path.DirectorySeparatorChar}{settings.SpecificFile}";
+                var path = $"{Settings.SourceDirPath}{Path.DirectorySeparatorChar}{Settings.SpecificFile}";
                 if (!File.Exists(path))
                 {
-                    Console.WriteLine($"The specified file '{settings.SpecificFile}' could not be found.");
+                    Console.WriteLine($"The specified file '{Settings.SpecificFile}' could not be found.");
                     return;
                 }
-                files = new string[] { path };
+                Files = new string[] { path };
                 return;
             }
 
-            files = Directory.GetFiles(settings.SourceDirPath)
+            Files = Directory.GetFiles(Settings.SourceDirPath)
                 .Where(f => f.EndsWith($".{ext}"))
                 .ToArray();
 
-            if (settings.IgnoreToday)
+            if (Settings.IgnoreCurrent)
             {
                 var todayStr = DateTime.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
-                files = files.Where(f => !f.Contains(todayStr)).ToArray();
+                Files = Files.Where(f => !f.Contains(todayStr)).ToArray();
             }
         }
     }

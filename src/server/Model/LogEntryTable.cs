@@ -8,56 +8,49 @@ namespace Model
 {
     class LogEntryTable
     {
+        readonly DataTable Table = new DataTable();
 
-        public DataRow[] Rows => table.Rows.Cast<DataRow>().ToArray();
+        public DataRow[] Rows => Table.Rows.Cast<DataRow>().ToArray();
 
-        IEnumerable<PropertyInfo> props { get; set; }
-
-        DataTable table = new DataTable();
+        IEnumerable<PropertyInfo> Props { get; set; }
 
         public LogEntryTable(IEnumerable<PropertyInfo> props)
         {
-            this.props = props;
-            Schema(props);
+            this.Props = props;
+            SetSchema(props);
         }
 
-        public LogEntryTable(IEnumerable<LogEntry> entries, IEnumerable<PropertyInfo> props)
+        public void Add(LogEntry entry)
         {
-            Schema(props);
-            Fill(props, entries);
+            var row = Table.NewRow();
+
+            foreach (var prop in Props)
+            {
+                var val = prop.GetValue(entry);
+                row[prop.Name] = val == null || string.IsNullOrWhiteSpace(val.ToString()) ? null : val;
+            }
+
+            Table.Rows.Add(row);
         }
 
-        public void Load(IEnumerable<LogEntry> entries)
+        public void Add(IEnumerable<LogEntry> entries)
         {
-            Fill(props, entries);
+            foreach (var entry in entries)
+            {
+                Add(entry);
+            }
         }
 
         public void Clear()
         {
-            table.Rows.Clear();
+            Table.Rows.Clear();
         }
 
-        void Schema(IEnumerable<PropertyInfo> props)
+        void SetSchema(IEnumerable<PropertyInfo> props)
         {
             foreach (var prop in props)
             {
-                table.Columns.Add(new DataColumn(prop.Name, prop.PropertyType) { AllowDBNull = true });
-            }
-        }
-
-        void Fill(IEnumerable<PropertyInfo> props, IEnumerable<LogEntry> with)
-        {
-            foreach (var rec in with)
-            {
-                var row = table.NewRow();
-
-                foreach (var prop in props)
-                {
-                    var val = prop.GetValue(rec);
-                    row[prop.Name] = val == null || string.IsNullOrWhiteSpace(val.ToString()) ? null : val;
-                }
-
-                table.Rows.Add(row);
+                Table.Columns.Add(new DataColumn(prop.Name, prop.PropertyType) { AllowDBNull = true });
             }
         }
     }

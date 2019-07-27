@@ -34,7 +34,7 @@ namespace LeafLogParser
                 await reader.Process();
             }
 
-            Console.WriteLine($"Successfully copied {manager.CopyCount} log entries from {reader.FileCount} file(s).");
+            Console.WriteLine($"Successfully copied {manager.CopiedCount} log entries from {reader.FileCount} file(s).");
             Console.WriteLine($"Exiting...");
         }
 

@@ -10,37 +10,44 @@ namespace Model
 {
     public class LogEntryTransferManager
     {
-        AppSettings settings { get; set; }
+        readonly IEnumerable<PropertyInfo> Props = typeof(LogEntry).GetProperties();
 
-        IEnumerable<PropertyInfo> props = typeof(LogEntry).GetProperties();
-        LogEntryTable table { get; set; }
+        AppSettings Settings { get; set; }
 
-        public int CopyCount { get; protected set; }
+        LogEntryTable Table { get; set; }
+
+        public int CopiedCount { get; protected set; }
+
+        public int RowCount => Table.Rows.Length;
 
         public LogEntryTransferManager(AppSettings settings)
         {
-            this.settings = settings;
-            this.table = new LogEntryTable(props);
-            this.CopyCount = 0;
+            this.Settings = settings;
+            this.Table = new LogEntryTable(Props);
+            this.CopiedCount = 0;
         }
 
-        public async Task ToSql(IEnumerable<LogEntry> entries)
+        public void Add(LogEntry entry)
         {
-            table.Load(entries);
-            CopyCount += entries.Count();
+            Table.Add(entry);
+        }
 
-            using (var bc = new SqlBulkCopy(settings.DbConnection))
+        public async Task ToSql()
+        {
+            CopiedCount += RowCount;
+
+            using (var bc = new SqlBulkCopy(Settings.DbConnection))
             {
-                bc.DestinationTableName = settings.DbTable;
-                foreach (var prop in props)
+                bc.DestinationTableName = Settings.DbTable;
+                foreach (var prop in Props)
                 {
                     bc.ColumnMappings.Add(prop.Name, prop.Name);
                 }
 
-                await bc.WriteToServerAsync(table.Rows);
+                await bc.WriteToServerAsync(Table.Rows);
             }
 
-            table.Clear();
+            Table.Clear();
         }
     }
 }

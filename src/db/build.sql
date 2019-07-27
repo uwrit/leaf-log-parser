@@ -1,5 +1,4 @@
-USE [LeafLog]
-GO
+
 /****** Object:  Table [dbo].[UsageLog]    Script Date: 7/26/2019 4:36:02 PM ******/
 SET ANSI_NULLS ON
 GO
