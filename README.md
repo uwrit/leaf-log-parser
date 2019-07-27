@@ -1,7 +1,7 @@
 # LeafLogParser &middot; [![GitHub license](https://img.shields.io/badge/license-BSD3-blue.svg)](https://github.com/facebook/react/blob/master/LICENSE) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
-LeafLogParser is a quick, simple app for copying [Leaf application](https://github.com/uwrit/leaf) log file data to a SQL Server and querying via JSON-based views.
+**LeafLogParser** is a lightweight, simple console app for copying [Leaf application](https://github.com/uwrit/leaf) log file data to a SQL Server and querying via JSON-based views.
 
-The Leaf API logs a vast amount of useful data on to log files as users use the application. These include data on what users are querying, how long queries take, SQL compilation, logins, errors, and security. Each log *entry* within a log file is structured as a [JSON](https://www.json.org/) Object of the form:
+The Leaf API logs a vast amount of useful data on to log files as users use the application. These include data on what users are querying, how long queries take, SQL compilation, logins, errors, security, and more. Each log entry within a log file is structured as a [JSON](https://www.json.org/) Object of the form:
 
 ```
 // Example

@@ -4,7 +4,6 @@ using System.Data.SqlClient;
 using System.Threading.Tasks;
 using CommandLine;
 using Model;
-using System.Collections.Generic;
 
 namespace LeafLogParser
 {
@@ -93,7 +92,6 @@ namespace LeafLogParser
             {
                 using (SqlConnection conn = new SqlConnection(settings.DbConnection))
                 {
-
                     conn.Open();
                     var cmd = new SqlCommand(sql, conn);
                     await cmd.ExecuteNonQueryAsync();
