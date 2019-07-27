@@ -76,5 +76,13 @@ namespace Model
             HelpText = "Boolean indicating whether completed log files should not be moved to the output directory after processing."
         )]
         public bool PreventArchive { get; set; }
+
+        [Option(
+            'f',
+            "specific-file",
+            Required = false,
+            HelpText = "An optional specific file to parse in the source directory."
+        )]
+        public string SpecificFile { get; set; }
     }
 }

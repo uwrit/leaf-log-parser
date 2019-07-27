@@ -114,6 +114,19 @@ namespace Model
         void GetFiles()
         {
             var ext = "log";
+
+            if (!string.IsNullOrWhiteSpace(settings.SpecificFile))
+            {
+                var path = $"{settings.SourceDirPath}{Path.DirectorySeparatorChar}{settings.SpecificFile}";
+                if (!File.Exists(path))
+                {
+                    Console.WriteLine($"The specified file '{settings.SpecificFile}' could not be found.");
+                    return;
+                }
+                files = new string[] { path };
+                return;
+            }
+
             files = Directory.GetFiles(settings.SourceDirPath)
                 .Where(f => f.EndsWith($".{ext}"))
                 .ToArray();
