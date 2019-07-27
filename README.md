@@ -19,9 +19,12 @@ Logging to files (as opposed directly to the database) is an industry standard a
 
 One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the *contents* of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
 
-**The LeafLogParser is a straightforward solution to this problem, streaming through notes, parsing and adding a select number of other useful fields while preserving the `Properties` column as-is.** 
+**The LeafLogParser is a straightforward solution to this problem. It:** 
+1) Streams through notes, parsing and adding a select number of other useful fields while preserving the `Properties` data.
+2) Efficiently copies the data to a SQL table.
+3) Provides out-of-the-box SQL views representing transforms of the data to answer different questions.
 
-After transferring the log data to the database, SQL views are used to iteratively parse the `Properties` JSON data into SQL data unique to different use cases. We've found this to work well at the University of Washington, as it allows us to preserve the source log data while being able to flexibly and quickly create new SQL views to answer different questions.
+We've found this to work well at the University of Washington, as it allows us to preserve the source log data while being able to flexibly and quickly create new SQL views to answer different questions.
 
 Thus this:
 
