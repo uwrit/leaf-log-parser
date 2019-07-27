@@ -20,7 +20,7 @@ Logging to files (as opposed to directly to a database) is an industry standard 
 One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the *contents* of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
 
 **The LeafLogParser is a straightforward solution to this problem. It:** 
-1) [Streams through notes](src/server/Model/LogReader.cs#L51), parsing and [adding a select number of other useful common fields](src/server/Model/UsageLog.cs#L47) while preserving the `Properties` data.
+1) [Streams through log files](src/server/Model/LogReader.cs#L51), parsing and [adding a select number of other useful common fields](src/server/Model/UsageLog.cs#L47) while preserving the `Properties` data.
 2) [Efficiently copies the data to a SQL table](src/server/Model/LogEntryTransferManager.cs#L35).
 3) [Provides out-of-the-box example SQL views](src/db/build.sql#L34) representing transforms of the data to answer different questions.
 4) Is quick to configure, schedule as a Cron job, and let you analyze your data.
