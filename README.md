@@ -1,6 +1,13 @@
 # LeafLogParser &middot; [![GitHub license](https://img.shields.io/badge/license-BSD3-blue.svg)](https://github.com/facebook/react/blob/master/LICENSE) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 **LeafLogParser** is a lightweight, simple console app for copying [Leaf application](https://github.com/uwrit/leaf) log file data to a SQL Server and querying via JSON-based views.
 
+- [What does it do?](#what-does-it-do)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Parameters](#parameters)
+
+## What does it do?
+
 The Leaf API logs a vast amount of useful data on to log files as users use the application. These include data on what users are querying, how long queries take, SQL compilation, logins, errors, security, and more. Each log entry within a log file is structured as a [JSON](https://www.json.org/) Object of the form:
 
 ```
@@ -126,7 +133,8 @@ $ dotnet LeafLogParser.dll
     -d "<sql_conn_string>"
 ```
 
-### Parameters [(source)](src/server/Model/AppSettings.cs)
+## Parameters 
+[(source)](src/server/Model/AppSettings.cs)
 
 | Parameter                     | Required | Default        | Comments                                      |
 | ----------------------------- | :------: | -------------- | --------------------------------------------- |
