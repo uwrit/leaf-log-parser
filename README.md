@@ -131,7 +131,7 @@ $ dotnet LeafLogParser.dll
 | Parameter                     | Required | Default        | Comments                                      |
 | ----------------------------- | :------: | -------------- | --------------------------------------------- |
 | -s or --source                | X        |                                 | Full path of directory where Leaf log files are stored. This is the `SERILOG_DIR` variable configured in the [Leaf environment variables](https://github.com/uwrit/leaf/blob/master/docs/deploy/app/README.md#setting-environment-variables). |
-| -o or --output                |          | `archive`                       | Directory where log files should be moved after processing. Can be a full path or directory name. If it is a directory name (not a path), Leaf will create it within the `-s` directory. |
+| -o or --output                |          | `archive`                       | Directory where log files should be moved after processing. Can be a full path or directory name. If it is a directory name (not a path), LeafLogParser will create it within the `-s` directory. |
 | -d or --database              | X        |                                 | Connection string for the database into which parsed log data are inserted. Should be of the form `Server=<address>;Database=<db_name>;User Id=<user_name>;Password=<pass>`. |
 | -t or --table                 |          | `dbo.UsageLog`                  | Name of the schema and table into which data are inserted into. |
 | -b or -batchsize              |          | 1000                            | Number of log entries by which to batch inserts into the SQL destination table. |
