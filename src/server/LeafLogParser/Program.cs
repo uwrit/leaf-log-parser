@@ -14,17 +14,6 @@ namespace LeafLogParser
 
         static async Task Main(string[] args)
         {
-            /* VS debug
-            settings.SourceDirPath = "C:/NicWork/apps/logs/leaf";
-            settings.OutputDirPath = settings.SourceDirPath + "/archive";
-            settings.DbConnection = "Server=localhost;Database=LeafLog;Integrated Security=SSPI";
-            settings.DbTable = "dbo.UsageLog";
-            settings.BatchSize = 1000;
-            settings.IgnoreTypes = new string[] { "Refreshed TokenBlacklistCache" };
-            settings.IgnoreToday = true;
-            settings.MoveCompleted = true;
-            */
-
             Console.WriteLine($"Starting up Leaf Log Reader...");
 
             LoadSettings(args);
