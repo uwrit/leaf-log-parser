@@ -3,14 +3,14 @@ LeafLogParser is a quick, simple app for copying [Leaf application](https://gith
 
 The Leaf API logs a vast amount of useful data on to log files as users use the application. These include data on what users are querying, how long queries take, SQL compilation, logins, errors, and security. Each log *entry* within a log file is structured as a [JSON](https://www.json.org/) Object of the form:
 
-```json
+```
 // Example
 {
     "Timestamp": "2019-07-22T15:10:10.5540648-07:00",
     "Level": "Information",
     "MessageTemplate": "FullCount cohort retrieved. Cohort:{@Cohort}",
     "Properties": {
-        // additional data...
+        ...
     }
 }
 ```
