@@ -15,14 +15,15 @@ The Leaf API logs a vast amount of useful data on to log files as users use the 
 }
 ```
 
-Logging to files (as opposed directly to the database) is an industry standard and ensures that the Leaf API responds to user requests quickly and efficiently. Yet for analytical and auditing reasons is still often important to ensure that log information is copied to a technology better suited to analytics, such as a relational database.
+Logging to files (as opposed directly to the database) is an industry standard and ensures that the Leaf API responds to user requests quickly and efficiently. Yet for analytical and auditing reasons it is still critical to ensure that log information is copied to a technology better suited to analytics and not stuck in hard-to-read files.
 
 One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the *contents* of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
 
 **The LeafLogParser is a straightforward solution to this problem. It:** 
-1) Streams through notes, parsing and adding a select number of other useful fields while preserving the `Properties` data.
+1) Streams through notes, parsing and adding a select number of other useful common fields while preserving the `Properties` data.
 2) Efficiently copies the data to a SQL table.
-3) Provides out-of-the-box SQL views representing transforms of the data to answer different questions.
+3) Provides out-of-the-box example SQL views representing transforms of the data to answer different questions.
+4) Is quick to configure, schedule as a Cron job, and let you analyze your data.
 
 We've found this to work well at the University of Washington, as it allows us to preserve the source log data while being able to flexibly and quickly create new SQL views to answer different questions.
 
