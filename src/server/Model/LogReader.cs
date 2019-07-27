@@ -10,12 +10,13 @@ namespace Model
     public class LogReader
     {
         AppSettings settings { get; set; }
-
-        string[] files = new string[] { };
-
-        int currFileIndex = -1;
-
         LogEntryTransferManager manager { get; set; }
+
+        HashSet<string> ignoredTypes;
+        string[] files = new string[] { };
+        int currFileIndex = -1;
+        const char leftBrace = '{';
+        const char rightBrace = '}';
 
         public int FileCount => files.Length;
 
@@ -25,6 +26,7 @@ namespace Model
         {
             this.settings = settings;
             this.manager = manager;
+            this.ignoredTypes = new HashSet<string>(settings.IgnoredTypes);
             GetFiles();
         }
 
@@ -41,12 +43,9 @@ namespace Model
         public async Task Process()
         {
             var curr = files[currFileIndex];
-            var leftBrace = '{';
-            var rightBrace = '}';
             var braceCount = 0;
             var chars = new List<char>();
             var entries = new List<LogEntry>();
-            var ignore = new HashSet<string>(settings.IgnoreTypes);
             char ch;
             
             using (StreamReader sr = new StreamReader(curr))
@@ -72,7 +71,7 @@ namespace Model
                                 var record = JsonConvert.DeserializeObject<LogRecord>(json);
                                 var entry = record.ToLogEntry();
 
-                                if (ignore.Contains(entry.MessageTemplate))
+                                if (ignoredTypes.Contains(entry.MessageTemplate))
                                 {
                                     chars.Clear();
                                     continue;

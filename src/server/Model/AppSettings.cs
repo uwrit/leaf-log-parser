@@ -51,13 +51,13 @@ namespace Model
 
         [Option(
             'i',
-            "ignore--message-types",
+            "ignored-message-types",
             Required = false,
             Separator = ',',
             Default = new string[] { "Refreshed TokenBlacklistCache" },
             HelpText = "Log entry MessageTemplate types to ignore, delimited by ','."
         )]
-        public IEnumerable<string> IgnoreTypes { get; set; }
+        public IEnumerable<string> IgnoredTypes { get; set; }
 
         [Option(
             'c',
