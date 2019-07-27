@@ -10,16 +10,18 @@ The Leaf API logs a vast amount of useful data on to log files as users use the 
     "Level": "Information",
     "MessageTemplate": "FullCount cohort retrieved. Cohort:{@Cohort}",
     "Properties": {
-        ...
+        // additional data...
     }
 }
 ```
 
 Logging to files (as opposed directly to the database) is an industry standard and ensures that the Leaf API responds to user requests quickly and efficiently. Yet for analytical and auditing reasons is still often important to ensure that log information is copied to a technology better suited to analytics, such as a relational database.
 
-One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the contents of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
+One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the *contents* of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
 
-**The LeafLogParser is an opinionated solution to this problem, streaming through notes, parsing and adding a select number of other useful fields while preserving the `Properties` column as-is.** After transferring the log data to the database, SQL views are used to iteratively parse the `Properties` JSON data into SQL data unique to different use cases. We've found this to work well at the University of Washington, as it allows us to preserve the source log data while being able to flexibly and quickly create new SQL views to answer different questions.
+**The LeafLogParser is a straightforward solution to this problem, streaming through notes, parsing and adding a select number of other useful fields while preserving the `Properties` column as-is.** 
+
+After transferring the log data to the database, SQL views are used to iteratively parse the `Properties` JSON data into SQL data unique to different use cases. We've found this to work well at the University of Washington, as it allows us to preserve the source log data while being able to flexibly and quickly create new SQL views to answer different questions.
 
 Thus this:
 
@@ -38,7 +40,7 @@ WHERE MessageTemplate = 'FullCount cohort retrieved. Cohort:{@Cohort}'
 Can be quickly and flexibly analyzed with a simple view that parses `Properties`:
 
 ```sql
--- Transformed to find patient count queries
+-- JSON-transformed view of the same data to find patient count queries
 SELECT TOP 10 *
 FROM dbo.v_CountQuery
 ```
@@ -48,7 +50,7 @@ FROM dbo.v_CountQuery
 | 2019-07-22 | ndobb@leaf | 46    | WITH wrapper (personId) AS ( SELECT P0.SUBJECT_ID... | 2.6           |
 | ...        |            |       |                                                      |               |
 
-Note that the **LeafLogParser** is merely one way to solve this problem, and we greatly appreciate thoughts and ideas of how to improve it. Please feel free to open an issue, make a pull request, or fork it to your needs :smiley:
+Note that the **LeafLogParser** is merely one way to solve this problem, and we greatly appreciate thoughts and ideas of how to improve it. Please feel free to open an issue, make a pull request, or fork it to meet your needs :smiley:
 
 ## Requirements
 
@@ -59,7 +61,7 @@ Note that the **LeafLogParser** is merely one way to solve this problem, and we 
 
 ### DB Server
 
-Logs are transformed and written to a database table with column names matching the [properties found in log entries](src/server/Model/LogReader.cs).
+Logs are transformed and written to a database table with column names matching the [properties found in log entries](src/server/Model/UsageLog.cs#L31).
 
 Create the database (adding arguments and environment-specific details as needed).
 ```sql
@@ -89,8 +91,7 @@ CREATE TABLE [dbo].[UsageLog](
  CONSTRAINT [PK_UsageLog] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+)
 GO
 
 ALTER TABLE [dbo].[UsageLog] ADD  CONSTRAINT [DF_UsageLog_Id]  DEFAULT (newsequentialid()) FOR [Id]
@@ -105,7 +106,7 @@ Clone/copy the repo to the [Leaf App server](https://github.com/uwrit/leaf/tree/
 $ git clone https://github.com/uwrit/leaf-log-parser.git
 ```
 
-Build and publish the app
+Build and publish the app.
 ```bash
 $ cd src/server/LeafLogParser
 $ dotnet publish -c Release
@@ -116,8 +117,8 @@ This will output the published files to the `src/server/LeafLogParser/bin/Releas
 
 ```bash
 $ cd bin/Release/netcoreapp2.2
-$ dotnet LeafLogParser.dll \
-    -s "<log_directory_path>" \
+$ dotnet LeafLogParser.dll 
+    -s "<log_directory_path>"
     -d "<sql_conn_string>"
 ```
 
@@ -125,7 +126,7 @@ $ dotnet LeafLogParser.dll \
 
 | Parameter                     | Required | Default        | Comments                                      |
 | ----------------------------- | :------: | -------------- | --------------------------------------------- |
-| -s or --source                | X        |                                 | Directory where Leaf log files are stored. This is the `SERILOG_DIR` variable configured in the [Leaf environment variables](https://github.com/uwrit/leaf/blob/master/docs/deploy/app/README.md#setting-environment-variables). |
+| -s or --source                | X        |                                 | Full path of directory where Leaf log files are stored. This is the `SERILOG_DIR` variable configured in the [Leaf environment variables](https://github.com/uwrit/leaf/blob/master/docs/deploy/app/README.md#setting-environment-variables). |
 | -o or --output                |          | `archive`                       | Directory where log files should be moved after processing. Can be a full path or directory name. If it is a directory name (not a path), Leaf will create it within the `-s` directory. |
 | -d or --database              | X        |                                 | Connection string for the database into which parsed log data are inserted. Should be of the form `Server=<address>;Database=<db_name>;User Id=<user_name>;Password=<pass>`. |
 | -t or --table                 |          | `dbo.UsageLog`                  | Name of the schema and table into which data are inserted into. |
