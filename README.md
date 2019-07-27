@@ -20,9 +20,9 @@ Logging to files (as opposed to directly to a database) is an industry standard 
 One more complication is the fact that while the `Timestamp`, `Level`, and `MessageTemplate` properties shown in the example above are consistent and predictable (i.e., they appear in every log entry, no matter the context), the *contents* of the `Properties` field vary greatly depending on the situation and what methods and variables are involved.
 
 **The LeafLogParser is a straightforward solution to this problem. It:** 
-1) Streams through notes, parsing and adding a select number of other useful common fields while preserving the `Properties` data.
-2) Efficiently copies the data to a SQL table.
-3) Provides out-of-the-box example SQL views representing transforms of the data to answer different questions.
+1) [Streams through notes](src/server/Model/LogReader.cs#L51), parsing and [adding a select number of other useful common fields](src/server/Model/UsageLog.cs#L47) while preserving the `Properties` data.
+2) [Efficiently copies the data to a SQL table](src/server/Model/LogEntryTransferManager.cs#L35).
+3) [Provides out-of-the-box example SQL views](src/db/build.sql#L34) representing transforms of the data to answer different questions.
 4) Is quick to configure, schedule as a Cron job, and let you analyze your data.
 
 We've found this to work well at the University of Washington, as it allows us to preserve the source log data while being able to flexibly and quickly create new SQL views to answer different questions.
@@ -59,7 +59,7 @@ Note that the **LeafLogParser** is merely one way to solve this problem, and we 
 ## Requirements
 
 1) [.NET Core 2.2+ runtime](https://dotnet.microsoft.com/download) installed on the server the log files are stored. As this is typically the server hosting your Leaf API, this is likely already installed.
-2) A database server with [MS SQL Server 16+](https://www.microsoft.com/en-us/sql-server/default.aspx) installed. A newer version of SQL Server is necessary to take advantage of [JSON-parsing functionality](https://docs.microsoft.com/en-us/sql/relational-databases/json/json-data-sql-server?view=sql-server-2017) introduced in SQL Server 2016.
+2) A database server with [MS SQL Server 2016+](https://www.microsoft.com/en-us/sql-server/default.aspx) installed. A newer version of SQL Server is necessary to take advantage of [JSON-parsing functionality](https://docs.microsoft.com/en-us/sql/relational-databases/json/json-data-sql-server?view=sql-server-2017) introduced in SQL Server 2016.
 
 ## Installation
 
