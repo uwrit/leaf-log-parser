@@ -816,3 +816,46 @@ FROM X
 		ON X.RequestId = F.RequestId
 	 LEFT JOIN E
 		ON X.RequestId = E.RequestId
+		
+/****** Object:  View [dbo].[v_ExportREDCap]    Script Date: 3/5/2020 4:32:55 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+
+
+CREATE VIEW [dbo].[v_ExportREDCap] AS
+
+WITH X AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'Creating REDCap Project. Project:{Project}'
+)
+
+SELECT
+    [Timestamp]
+  , [User]
+  , [SessionId]
+  , [RequestId]
+  , [ActionId]
+  , [ActionName]
+  , [RequestPath]
+  , [SourceContext]
+FROM X
+
+GO		
