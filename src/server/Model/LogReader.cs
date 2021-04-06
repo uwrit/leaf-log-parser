@@ -113,6 +113,36 @@ namespace Model
         {
             var ext = "log";
 
+            // If copy all remote files found
+            if (!string.IsNullOrEmpty(Settings.CopyAllDirPath))
+            {
+                var toCopy = Directory.GetFiles(Settings.CopyAllDirPath)
+                    .Where(f => f.EndsWith($".{ext}"))
+                    .ToArray();
+
+                foreach (var file in toCopy)
+                {
+                    var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(file));
+                    File.Copy(file, Path.Combine(file, outfile), true);
+                }
+            }
+
+            // If copy only latest file
+            if (!string.IsNullOrEmpty(Settings.CopyLatestDirPath))
+            {
+                var toCopy = Directory.GetFiles(Settings.CopyLatestDirPath)
+                    .Where(f => f.EndsWith($".{ext}"))
+                    .OrderByDescending(f => f)
+                    .FirstOrDefault();
+
+                if (toCopy != null)
+                {
+                    var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(toCopy));
+                    File.Copy(toCopy, Path.Combine(toCopy, outfile), true);
+                }
+            }
+
+            // If copy a specific file
             if (!string.IsNullOrWhiteSpace(Settings.SpecificFile))
             {
                 var path = $"{Settings.SourceDirPath}{Path.DirectorySeparatorChar}{Settings.SpecificFile}";

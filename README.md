@@ -123,12 +123,12 @@ Build and publish the app.
 $ cd src/server/LeafLogParser
 $ dotnet publish -c Release
 ```
-> Note that you may need to add additional arguments, particularly if building in a Linux environment. See the [dotnet publish page](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish?tabs=netcore21) for more information.
+> Note that you may need to add additional arguments, particularly if building in a Linux environment. See the [dotnet publish page](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish?tabs=netcore31) for more information.
 
-This will output the published files to the `src/server/LeafLogParser/bin/Release/netcoreapp2.2` directory which can be executed with:
+This will output the published files to the `src/server/LeafLogParser/bin/Release/netcoreapp3.1` directory which can be executed with:
 
 ```bash
-$ cd bin/Release/netcoreapp2.2
+$ cd bin/Release/netcoreapp3.1
 $ dotnet LeafLogParser.dll 
     -s "<log_directory_path>"
     -d "<sql_conn_string>"
@@ -148,6 +148,8 @@ $ dotnet LeafLogParser.dll
 | -c or --ignore-current        |          | `true`                          | Specifies any log files whose name matches that of the current date (e.g., `leaf-api-<today>.log`) should be ignored. We recommend keeping this as `true` in order to avoid reading while the Leaf API is simultaneously writing to the file. |
 | -n or --no-archive            |          | `false`                         | Specifies that processed log files should not be archived.  We recommend keeping this as `false` in order to avoid reprocessing the same log files multiple times. |
 | -f or --specific-file         |          |                                 | A specific file name within the `-s` directory to be processed. This is useful when you wish to process only a particular file and not all in the directory.
+| --copy-all                    |          |                                 | Specifies that any log files found in this directory should first be copied to the `source` directory before processing. This is useful if Leaf log files are on a remote server.
+| --copy-latest                 |          |                                 | Specifies that the latest Leaf log file found in this directory should first be copied to the `source` directory before processing. This is useful if Leaf log files are on a remote server.
 
 
 

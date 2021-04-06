@@ -16,6 +16,18 @@ namespace Model
         public string SourceDirPath { get; set; }
 
         [Option(
+            "copy-all",
+            Required = false,
+            HelpText = "Copy all (remote or local) log files found in a directory to source directory")]
+        public string CopyAllDirPath { get; set; }
+
+        [Option(
+            "copy-latest",
+            Required = false,
+            HelpText = "Copy latest (remote or local) log file found in a directory to source directory")]
+        public string CopyLatestDirPath { get; set; }
+
+        [Option(
             'o',
             "output",
             Required = false,

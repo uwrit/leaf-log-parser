@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29025.244
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Model", "Model\Model.csproj", "{CEECC052-BCE4-4146-AA1D-BBDA3FA9B7C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeafLogParser", "LeafLogParser\LeafLogParser.csproj", "{68AB2247-DF1B-4529-A5A5-C5A7C0099B33}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "leaf-log-parser", "leaf-log-parser\leaf-log-parser.csproj", "{1E0AFD45-DC81-4E24-9B83-E9DE459330CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{CEECC052-BCE4-4146-AA1D-BBDA3FA9B7C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEECC052-BCE4-4146-AA1D-BBDA3FA9B7C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEECC052-BCE4-4146-AA1D-BBDA3FA9B7C8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{68AB2247-DF1B-4529-A5A5-C5A7C0099B33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{68AB2247-DF1B-4529-A5A5-C5A7C0099B33}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{68AB2247-DF1B-4529-A5A5-C5A7C0099B33}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{68AB2247-DF1B-4529-A5A5-C5A7C0099B33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E0AFD45-DC81-4E24-9B83-E9DE459330CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E0AFD45-DC81-4E24-9B83-E9DE459330CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E0AFD45-DC81-4E24-9B83-E9DE459330CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E0AFD45-DC81-4E24-9B83-E9DE459330CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
