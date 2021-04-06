@@ -1,5 +1,4 @@
-
-/****** Object:  Table [dbo].[UsageLog]    Script Date: 7/26/2019 4:36:02 PM ******/
+/****** Object:  Table [dbo].[UsageLog]    Script Date: 11/22/2019 11:12:37 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -25,11 +24,16 @@ CREATE TABLE [dbo].[UsageLog](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  View [dbo].[v_DatasetQuery]    Script Date: 7/26/2019 4:36:03 PM ******/
+/****** Object:  View [dbo].[v_DatasetQuery]    Script Date: 11/22/2019 11:12:37 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
+
+
+
 
 CREATE VIEW [dbo].[v_DatasetQuery] AS
 
@@ -38,8 +42,6 @@ WITH X AS
 	SELECT
 		L.[Timestamp]
 	  , L.[MessageTemplate]
-	  , Context = JSON_QUERY(L.Properties, '$.Context')
-	  , L.[Properties]
 	  , L.[ActionId]
 	  , L.[ActionName]
 	  , L.[RequestId]
@@ -47,29 +49,107 @@ WITH X AS
 	  , L.[SessionId]
 	  , L.[SourceContext]
 	  , L.[User]
-	FROM [LeafLog].[dbo].[UsageLog] AS L
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'Dataset starting. QueryRef:{QueryRef} DatasetRef:{DatasetRef}'
+)
+, Q AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , L.[RequestId]
+	  , J.[DatasetId]
+	  , J.[UniversalId]
+	  , J.[Shape]
+	  , J.[Name]
+	  , J.[Category]
+	  , J.[SqlStatement]
+	  , [StartDateParam] = CONVERT(DATETIME, CASE WHEN J.[DateParam2] IS NULL THEN NULL ELSE J.[DateParam1] END)
+	  , [EndDateParam] = CONVERT(DATETIME, CASE WHEN J.[DateParam2] IS NULL THEN J.[DateParam1] ELSE J.[DateParam2] END)
+	FROM [dbo].[UsageLog] AS L
+	     CROSS APPLY OPENJSON(JSON_QUERY(L.Properties, '$.Context'))
+		 WITH 
+		    (
+				[DatasetId] UNIQUEIDENTIFIER '$.DatasetId',
+				[UniversalId] NVARCHAR(100) '$.DatasetQuery.UniversalId',
+				[Shape] NVARCHAR(20) '$.Shape',
+				[SqlStatement] NVARCHAR(MAX) '$.CompiledQuery',
+				[DateParam1] DATETIMEOFFSET '$.Parameters[1].Value',
+				[DateParam2] DATETIMEOFFSET '$.Parameters[2].Value',
+				[Name] NVARCHAR(100) '$.DatasetQuery.Name',
+				[Category] NVARCHAR(100) '$.DatasetQuery.Category'
+			) AS J
 	WHERE L.MessageTemplate = 'Compiled dataset execution context. Context:{@Context}'
 )
+, F AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , L.[RequestId]
+	  , J.[PatientCount]
+	  , J.[RecordCount]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH 
+		 (
+			[PatientCount] INT '$.Patients',
+			[RecordCount] INT '$.Records'
+		 ) AS J
+	WHERE L.MessageTemplate = 'Dataset complete. Patients:{Patients} Records:{Records}'
+)
+, E AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , J.[Error]
+	  , L.[RequestId]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH ([Error] NVARCHAR(MAX) '$.Error') AS J
+	WHERE L.MessageTemplate = 'Failed to fetch dataset. QueryID:{QueryID} DatasetID:{DatasetID} Error:{Error}'
+)		
+
 
 SELECT 
-	[Timestamp]
-  , [DatasetId] = JSON_VALUE(X.Context, '$.DatasetId')
-  , [Shape] = JSON_VALUE(X.Context, '$.Shape')
-  , [CompiledQuery] = JSON_VALUE(X.Context, '$.CompiledQuery')
-  , [SessionId]
-  , [RequestId]
-  , [ActionId]
-  , [ActionName]
-  , [RequestPath]
-  , [SourceContext]
-  , [User]
-FROM X
+	X.[Timestamp]
+  , X.[User]
+  , X.[SessionId]
+  , Q.[DatasetId]
+  , Q.[UniversalId]
+  , Q.[Shape]
+  , Q.[Name]
+  , Q.[Category]
+  , Q.[SqlStatement]
+  , Q.[StartDateParam]
+  , Q.[EndDateParam]
+  , F.[PatientCount]
+  , F.[RecordCount]
+  , Success = CONVERT(BIT, CASE WHEN E.[Error] IS NULL THEN 1 ELSE 0 END)
+  , [QueryStartTime] = X.[Timestamp]
+  , [QueryEndTime] = ISNULL(E.[TimeStamp],F.[TimeStamp])
+  , [QueryExecutionTimeInSeconds] = CONVERT(DECIMAL(18,1), DATEDIFF(MS, Q.[TimeStamp], ISNULL(E.[TimeStamp], F.[TimeStamp])) / 100.0, 1)
+  , E.[Error]
+  , X.[RequestId]
+  , X.[ActionId]
+  , X.[ActionName]
+  , X.[RequestPath]
+  , X.[SourceContext]
+FROM X 
+	 INNER JOIN Q
+		ON X.RequestId = Q.RequestId
+	 LEFT JOIN F
+		ON X.RequestId = F.RequestId
+	 LEFT JOIN E
+		ON X.RequestId = E.RequestId
+	 
 GO
-/****** Object:  View [dbo].[v_CountQuery]    Script Date: 7/26/2019 4:36:03 PM ******/
+/****** Object:  View [dbo].[v_CountQuery]    Script Date: 11/22/2019 11:12:37 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
+
 
 CREATE VIEW [dbo].[v_CountQuery] AS
 
@@ -78,8 +158,7 @@ WITH X AS
 	SELECT
 		L.[Timestamp]
 	  , L.[MessageTemplate]
-	  , Cohort = JSON_QUERY(L.Properties, '$.Cohort')
-	  , L.[Properties]
+	  , QueryId = CONVERT(UNIQUEIDENTIFIER, NULLIF(J.QueryId,''))
 	  , L.[ActionId]
 	  , L.[ActionName]
 	  , L.[RequestId]
@@ -87,29 +166,77 @@ WITH X AS
 	  , L.[SessionId]
 	  , L.[SourceContext]
 	  , L.[User]
-	FROM [LeafLog].[dbo].[UsageLog] AS L
-	WHERE L.RequestPath = '/api/cohort/count'
-		  AND L.MessageTemplate = 'FullCount cohort retrieved. Cohort:{@Cohort}'
+	FROM [dbo].[UsageLog] AS L
+	     CROSS APPLY OPENJSON(L.Properties)
+		 WITH ([QueryId] NVARCHAR(100) '$.QueryId') AS J
+	WHERE L.MessageTemplate = 'FullCount starting. DTO:{@DTO}'
 )
+, Q AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , J.[SqlStatement]
+	  , L.[RequestId]
+	FROM [dbo].[UsageLog] AS L
+	     CROSS APPLY OPENJSON(L.Properties)
+		 WITH ([SqlStatement] NVARCHAR(MAX) '$.Sql') AS J
+	WHERE L.MessageTemplate = 'CTE SqlStatement:{Sql}'
+)
+, F AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , [PatientCount] = JSON_VALUE(L.Properties, '$.Cohort.Count')
+	  , L.[RequestId]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'FullCount cohort retrieved. Cohort:{@Cohort}'
+)
+, E AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , J.[Error]
+	  , L.[RequestId]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH ([Error] NVARCHAR(MAX) '$.Error') AS J
+	WHERE L.MessageTemplate = 'Failed to execute query. Error:{Error}'
+)		
+
 
 SELECT 
-	[Timestamp]
-  , [SqlStatement] = JSON_VALUE(X.Cohort, '$.SqlStatements[0]')
-  , [PatientCount] = JSON_VALUE(X.Cohort, '$.Count')
-  , [SessionId]
-  , [RequestId]
-  , [ActionId]
-  , [ActionName]
-  , [RequestPath]
-  , [SourceContext]
-  , [User]
-FROM X
+	X.[Timestamp]
+  , X.[User]
+  , X.[SessionId]
+  , Q.[SqlStatement]
+  , F.[PatientCount]
+  , Success = CONVERT(BIT, CASE WHEN E.[Error] IS NULL THEN 1 ELSE 0 END)
+  , [QueryStartTime] = X.[Timestamp]
+  , [QueryEndTime] = ISNULL(E.[TimeStamp],F.[TimeStamp])
+  , [QueryExecutionTimeInSeconds] = CONVERT(DECIMAL(18,1), DATEDIFF(MS, Q.[TimeStamp], ISNULL(E.[TimeStamp], F.[TimeStamp])) / 100.0, 1)
+  , E.[Error]
+  , X.[RequestId]
+  , X.[ActionId]
+  , X.[ActionName]
+  , X.[RequestPath]
+  , X.[SourceContext]
+FROM X 
+	 INNER JOIN Q
+		ON X.RequestId = Q.RequestId
+	 LEFT JOIN F
+		ON X.RequestId = F.RequestId
+	 LEFT JOIN E
+		ON X.RequestId = E.RequestId
+	 
 GO
-/****** Object:  View [dbo].[v_CountQueryDetail]    Script Date: 7/26/2019 4:36:03 PM ******/
+/****** Object:  View [dbo].[v_CountQueryDetail]    Script Date: 11/22/2019 11:12:37 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
+
 
 CREATE VIEW [dbo].[v_CountQueryDetail] AS
 
@@ -119,8 +246,7 @@ WITH X1 AS
 	SELECT
 		L.[Timestamp]
 	  , L.[MessageTemplate]
-	  , Requested = JSON_QUERY(L.Properties, '$.Context.Requested')
-	  , L.[Properties]
+	  , Panels = JSON_QUERY(L.Properties, '$.DTO.Panels')
 	  , L.[ActionId]
 	  , L.[ActionName]
 	  , L.[RequestId]
@@ -128,9 +254,8 @@ WITH X1 AS
 	  , L.[SessionId]
 	  , L.[SourceContext]
 	  , L.[User]
-	FROM [LeafLog].[dbo].[UsageLog] AS L
-	WHERE L.RequestPath = '/api/cohort/count'
-		  AND L.MessageTemplate = 'FullCount panel validation context. Context:{@Context}'
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'FullCount starting. DTO:{@DTO}'
 )
 
 -- Panel Level
@@ -143,7 +268,6 @@ WITH X1 AS
 	  , [DateFilter]
 	  , [IncludePanel]
 	  , [PanelIndex]
-	  , [Properties]
 	  , [ActionId]
 	  , [ActionName]
 	  , [RequestId]
@@ -152,7 +276,7 @@ WITH X1 AS
 	  , [SourceContext]
 	  , [User]
 	FROM X1 
-	     CROSS APPLY OPENJSON(X1.Requested)
+	     CROSS APPLY OPENJSON(X1.Panels)
 		 WITH 
 		 (
 			[SubPanels] NVARCHAR(MAX) AS JSON,
@@ -251,6 +375,8 @@ WITH X1 AS
 
 SELECT
 	  [Timestamp]
+	, [User]
+	, [SessionId]
 	, [PanelIndex]
 	, [IncludePanel]
 	, [SubPanelIndex]
@@ -271,14 +397,465 @@ SELECT
 	, [JoinSequenceType]
 	, [JoinSequenceDateType]
 	, [JoinSequenceIncrement]
-	, [ActionId]
-	, [ActionName]
 	, [RequestId]
-	, [RequestPath]
-	, [SessionId]
-	, [SourceContext]
-	, [User]
+    , [ActionId]
+    , [ActionName]
+    , [RequestPath]
+    , [SourceContext]
 FROM X4
 GO
-ALTER TABLE [dbo].[UsageLog] ADD  CONSTRAINT [DF_UsageLog_Id]  DEFAULT (newsequentialid()) FOR [Id]
+/****** Object:  View [dbo].[v_ConceptChildren]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
 GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+CREATE VIEW [dbo].[v_ConceptChildren] AS
+
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , J.Concept
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+	WITH (Concept UNIQUEIDENTIFIER '$.Parent') AS J
+	WHERE L.MessageTemplate = 'Getting child concepts. Parent:{Parent}'
+GO
+/****** Object:  View [dbo].[v_ConceptSearch]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+CREATE VIEW [dbo].[v_ConceptSearch] AS
+
+WITH X AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , J.Hints
+	  , Properties
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH (Hints NVARCHAR(MAX) AS JSON) AS J
+	WHERE L.MessageTemplate = 'Found hints. Hints:{Hints}'
+)
+
+SELECT
+    [Timestamp]
+  , [User]
+  , [SessionId]
+  , J.SearchTerm
+  , HintsFound = (SELECT COUNT(*) FROM X CROSS APPLY OPENJSON(X.Hints) WHERE X.RequestId = L.RequestId)
+  , [RequestId]
+  , [ActionId]
+  , [ActionName]
+  , [RequestPath]
+  , [SourceContext]
+FROM [dbo].[UsageLog] AS L
+	 CROSS APPLY OPENJSON(L.Properties)
+WITH (SearchTerm NVARCHAR(100) '$.Terms') AS J
+WHERE L.MessageTemplate = 'Searching hints by terms. Terms:{Terms}'
+
+GO
+/****** Object:  View [dbo].[v_Login]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+CREATE VIEW [dbo].[v_Login] AS
+
+WITH X AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , [Attestation]
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH (Attestation NVARCHAR(MAX) AS JSON) AS J
+	WHERE L.MessageTemplate = 'Created Access Token. Attestation:{@Attestation} Token:{Token}'
+)
+
+SELECT
+    [Timestamp]
+  , [User]
+  , [SessionId]
+  , [SessionType]
+  , [IsIdentified]
+  , [DocExpirationDate] = NULLIF([DocExpirationDate],'0001-01-01 00:00:00.0000000')
+  , [DocInstitution]
+  , [DocTitle]
+  , [RequestId]
+  , [ActionId]
+  , [ActionName]
+  , [RequestPath]
+  , [SourceContext]
+FROM X CROSS APPLY OPENJSON(X.Attestation)
+WITH (
+		SessionType NVARCHAR(20) '$.SessionType',
+		IsIdentified BIT '$.IsIdentified',
+		DocExpirationDate DATETIME2 '$.Documentation.ExpirationDate',
+		DocInstitution NVARCHAR(100) '$.Documentation.Institution',
+		DocTitle NVARCHAR(100) '$.Documentation.Title'
+	 ) AS J
+
+GO
+/****** Object:  View [dbo].[v_UnauthorizedLogin]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+
+CREATE VIEW [dbo].[v_UnauthorizedLogin] AS
+
+WITH X AS 
+(
+	SELECT
+		[Timestamp]
+	  , [BeginIdx] = CHARINDEX('"Error": "', L.Properties) + LEN('"Error": "')
+	  , [EndIdx] = CHARINDEX('is not a Leaf user', L.Properties)
+	  , [SessionId]
+	  , L.Properties
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'User is not authorized to use Leaf. Error:{Error}'
+)
+
+SELECT
+    [Timestamp]
+  , [User] = TRIM(SUBSTRING([Properties], [BeginIdx], [EndIdx] - [BeginIdx]))
+  , [SessionId]
+  , [RequestId]
+  , [ActionId]
+  , [ActionName]
+  , [RequestPath]
+  , [SourceContext]
+FROM X
+
+GO
+/****** Object:  View [dbo].[v_QuerySave]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+
+CREATE VIEW [dbo].[v_QuerySave] AS
+
+WITH X AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'Saving query. Id:{Id} Ast:{Ast}'
+)
+, S AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , J.[QueryId]
+	  , J.[UniversalID]
+	  , J.[Name]
+	  , J.[Category]
+	  , J.[Version]
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+	     CROSS APPLY OPENJSON(L.Properties)
+		 WITH 
+		 (
+			[QueryId] UNIQUEIDENTIFIER '$.Query',
+			[UniversalId] NVARCHAR(100) '$.Payload.UniversalId.Value',
+			[Version] INT '$.Payload.Ver',
+			[Name] NVARCHAR(100) '$.Payload.Name',
+			[Category] NVARCHAR(100) '$.Payload.Category'
+		 ) AS J
+	WHERE L.MessageTemplate = 'Saving query. Query:{Query} Payload:{@Payload}'
+)
+, E AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , [Error] = JSON_VALUE(L.Properties, '$.Error')
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'Failed to save query. Query:{@Query} Code:{Code} Error:{Error}'
+)
+
+SELECT 
+	X.[Timestamp]
+  , X.[User]
+  , X.[SessionId]
+  , S.[QueryId]
+  , S.[UniversalId]
+  , S.[Name]
+  , S.[Category]
+  , S.[Version]
+  , Success = CONVERT(BIT, CASE WHEN E.[Error] IS NULL THEN 1 ELSE 0 END)
+  , E.[Error]
+  , X.[RequestId]
+  , X.[ActionId]
+  , X.[ActionName]
+  , X.[RequestPath]
+  , X.[SourceContext]
+FROM X 
+	 INNER JOIN S
+		ON X.RequestId = S.RequestId
+	 LEFT JOIN E
+		ON X.RequestId = E.RequestId
+
+GO
+/****** Object:  View [dbo].[v_QueryDelete]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+CREATE VIEW [dbo].[v_QueryDelete] AS
+
+WITH X AS 
+(
+	SELECT
+		[Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , [UniversalId] = J.[Query]
+	  , [BeginIdx] = CHARINDEX('urn:leaf:query:', [Query]) + LEN('urn:leaf:query:')
+	  , [EndIdx] = CHARINDEX(':', REVERSE([Query]))
+	  , J.[Force]
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH (
+			[Query] NVARCHAR(100) '$.Query',
+			[Force] BIT '$.Force'
+		 ) AS J
+	WHERE L.MessageTemplate = 'Deleting query. Query:{Query} Force:{Force}'
+)
+
+SELECT 
+	[Timestamp]
+  , [User]
+  , [SessionId]
+  , [UniversalId]
+  , [QueryId] = TRIM(SUBSTRING([UniversalId], [BeginIdx], LEN([UniversalId]) - [BeginIdx] - [EndIdx] + 1))
+  , [Force]
+  , [RequestId]
+  , [ActionId]
+  , [ActionName]
+  , [RequestPath]
+  , [SourceContext]
+FROM X
+GO
+/****** Object:  View [dbo].[v_DemographicsDatasetQuery]    Script Date: 11/22/2019 11:12:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+
+CREATE VIEW [dbo].[v_DemographicsDatasetQuery] AS
+
+WITH X AS
+(
+	SELECT
+		L.[Timestamp]
+	  , L.[MessageTemplate]
+	  , L.[ActionId]
+	  , L.[ActionName]
+	  , L.[RequestId]
+	  , L.[RequestPath]
+	  , L.[SessionId]
+	  , L.[SourceContext]
+	  , L.[User]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'Demographics starting. QueryRef:{QueryRef}'
+)
+, Q AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , L.Properties
+	  , L.[RequestId]
+	  , J.[Shape]
+	  , J.[SqlStatement]
+	FROM [dbo].[UsageLog] AS L
+	     CROSS APPLY OPENJSON(JSON_QUERY(L.Properties, '$.Context'))
+		 WITH 
+		    (
+				[Shape] NVARCHAR(20) '$.Shape',
+				[SqlStatement] NVARCHAR(MAX) '$.CompiledQuery'
+			) AS J
+	WHERE L.MessageTemplate = 'Compiled demographic execution context. Context:{@Context}'
+)
+, F AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , L.[RequestId]
+	  , J.[ExportedCount]
+	  , J.[TotalAggregatedCount]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH 
+		 (
+			[ExportedCount] INT '$.Exported',
+			[TotalAggregatedCount] INT '$.Total'
+		 ) AS J
+	WHERE L.MessageTemplate = 'Demographics complete. Exported:{Exported} Total:{Total}'
+)
+, E AS
+(
+	SELECT
+	    L.[Timestamp]
+	  , J.[Error]
+	  , L.[RequestId]
+	FROM [dbo].[UsageLog] AS L
+		 CROSS APPLY OPENJSON(L.Properties)
+		 WITH ([Error] NVARCHAR(MAX) '$.Error') AS J
+	WHERE L.MessageTemplate = 'Failed to fetch dataset. QueryID:{QueryID} DatasetID:{DatasetID} Error:{Error}'
+)		
+
+
+SELECT 
+	X.[Timestamp]
+  , X.[User]
+  , X.[SessionId]
+  , Q.[Shape]
+  , F.[ExportedCount]
+  , F.[TotalAggregatedCount]
+  , Success = CONVERT(BIT, CASE WHEN E.[Error] IS NULL THEN 1 ELSE 0 END)
+  , [QueryStartTime] = X.[Timestamp]
+  , [QueryEndTime] = ISNULL(E.[TimeStamp],F.[TimeStamp])
+  , [QueryExecutionTimeInSeconds] = CONVERT(DECIMAL(18,1), DATEDIFF(MS, Q.[TimeStamp], ISNULL(E.[TimeStamp], F.[TimeStamp])) / 100.0, 1)
+  , E.[Error]
+  , X.[RequestId]
+  , X.[ActionId]
+  , X.[ActionName]
+  , X.[RequestPath]
+  , X.[SourceContext]
+FROM X 
+	 INNER JOIN Q
+		ON X.RequestId = Q.RequestId
+	 LEFT JOIN F
+		ON X.RequestId = F.RequestId
+	 LEFT JOIN E
+		ON X.RequestId = E.RequestId
+		
+/****** Object:  View [dbo].[v_ExportREDCap]    Script Date: 3/5/2020 4:32:55 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+
+
+CREATE VIEW [dbo].[v_ExportREDCap] AS
+
+WITH X AS
+(
+	SELECT
+	    [Timestamp]
+	  , [User]
+	  , [SessionId]
+	  , [RequestId]
+	  , [ActionId]
+	  , [ActionName]
+	  , [RequestPath]
+	  , [SourceContext]
+	FROM [dbo].[UsageLog] AS L
+	WHERE L.MessageTemplate = 'Creating REDCap Project. Project:{Project}'
+)
+
+SELECT
+    [Timestamp]
+  , [User]
+  , [SessionId]
+  , [RequestId]
+  , [ActionId]
+  , [ActionName]
+  , [RequestPath]
+  , [SourceContext]
+FROM X
+
+GO		
