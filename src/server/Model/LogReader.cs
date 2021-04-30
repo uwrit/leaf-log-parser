@@ -112,6 +112,7 @@ namespace Model
         void GetFiles()
         {
             var ext = "log";
+            var todayStr = DateTime.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
 
             // If copy all remote files found
             if (!string.IsNullOrEmpty(Settings.CopyAllDirPath))
@@ -119,6 +120,11 @@ namespace Model
                 var toCopy = Directory.GetFiles(Settings.CopyAllDirPath)
                     .Where(f => f.EndsWith($".{ext}"))
                     .ToArray();
+
+                if (Settings.IgnoreCurrent)
+                {
+                    toCopy = toCopy.Where(f => !f.Contains(todayStr)).ToArray();
+                }
 
                 foreach (var file in toCopy)
                 {
@@ -161,7 +167,6 @@ namespace Model
 
             if (Settings.IgnoreCurrent)
             {
-                var todayStr = DateTime.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
                 Files = Files.Where(f => !f.Contains(todayStr)).ToArray();
             }
         }
