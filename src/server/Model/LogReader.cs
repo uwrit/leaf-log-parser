@@ -161,6 +161,14 @@ namespace Model
                 return;
             }
 
+            // Delete any files seen before
+            var archived = Directory.GetFiles(Settings.OutputDirPath);
+            var pulled = Directory.GetFiles(Settings.SourceDirPath);
+            foreach (var file in archived.Intersect(pulled))
+            {
+                Directory.Delete(file);
+            }
+
             Files = Directory.GetFiles(Settings.SourceDirPath)
                 .Where(f => f.EndsWith($".{ext}"))
                 .ToArray();
