@@ -47,7 +47,7 @@ namespace Model
             var braceCount = 0;
             var chars = new List<char>();
             char ch;
-            
+
             using (StreamReader sr = new StreamReader(curr))
             {
                 while (!sr.EndOfStream)
@@ -113,6 +113,7 @@ namespace Model
         {
             var ext = "log";
             var todayStr = DateTime.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+            var archived = Directory.GetFiles(Settings.OutputDirPath).Select(p => Path.GetFileName(p));
 
             // If copy all remote files found
             if (!string.IsNullOrEmpty(Settings.CopyAllDirPath))
@@ -126,7 +127,7 @@ namespace Model
                     toCopy = toCopy.Where(f => !f.Contains(todayStr)).ToArray();
                 }
 
-                foreach (var file in toCopy)
+                foreach (var file in toCopy.Where(f => !archived.Contains(f)))
                 {
                     var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(file));
                     File.Copy(file, Path.Combine(file, outfile), true);
@@ -151,7 +152,7 @@ namespace Model
             // If copy a specific file
             if (!string.IsNullOrWhiteSpace(Settings.SpecificFile))
             {
-                var path = $"{Settings.SourceDirPath}{Path.DirectorySeparatorChar}{Settings.SpecificFile}";
+                var path = Path.Combine(Settings.SourceDirPath, Settings.SpecificFile);
                 if (!File.Exists(path))
                 {
                     Console.WriteLine($"The specified file '{Settings.SpecificFile}' could not be found.");
@@ -161,12 +162,11 @@ namespace Model
                 return;
             }
 
-            // Delete any files seen before
-            var archived = Directory.GetFiles(Settings.OutputDirPath);
-            var pulled = Directory.GetFiles(Settings.SourceDirPath);
+            // Redundant check but to be safe, delete any files already archived but mistakenly copied over again
+            var pulled = Directory.GetFiles(Settings.SourceDirPath).Select(p => Path.GetFileName(p));
             foreach (var file in archived.Intersect(pulled))
             {
-                Directory.Delete(file);
+                Directory.Delete(Path.Combine(Settings.SourceDirPath, file));
             }
 
             Files = Directory.GetFiles(Settings.SourceDirPath)
