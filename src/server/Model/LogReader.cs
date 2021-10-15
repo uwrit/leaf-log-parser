@@ -137,10 +137,23 @@ namespace Model
             // If copy only latest file
             if (!string.IsNullOrEmpty(Settings.CopyLatestDirPath))
             {
-                var toCopy = Directory.GetFiles(Settings.CopyLatestDirPath)
-                    .Where(f => f.EndsWith($".{ext}"))
-                    .OrderByDescending(f => f)
-                    .FirstOrDefault();
+                var toCopy = "";
+
+                if (Settings.IgnoreCurrent)
+                {
+                    toCopy = Directory.GetFiles(Settings.CopyLatestDirPath)
+                        .Where(f => f.EndsWith($".{ext}"))
+                        .Where(f => !f.Contains(todayStr))
+                        .OrderByDescending(f => f)
+                        .FirstOrDefault();
+                }
+                else
+                {
+                    toCopy = Directory.GetFiles(Settings.CopyLatestDirPath)
+                        .Where(f => f.EndsWith($".{ext}"))
+                        .OrderByDescending(f => f)
+                        .FirstOrDefault();
+                }
 
                 if (toCopy != null)
                 {
