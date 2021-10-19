@@ -113,6 +113,7 @@ namespace Model
         {
             var ext = "log";
             var todayStr = DateTime.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+            var datadir = Directory.GetFiles(Settings.SourceDirPath).Select(p => Path.GetFileName(p));
             var archived = Directory.GetFiles(Settings.OutputDirPath).Select(p => Path.GetFileName(p));
 
             // If copy all remote files found
@@ -120,6 +121,8 @@ namespace Model
             {
                 var toCopy = Directory.GetFiles(Settings.CopyAllDirPath)
                     .Where(f => f.EndsWith($".{ext}"))
+                    .Where(f => !archived.Contains(Path.GetFileName(f)))
+                    .Where(f => !datadir.Contains(Path.GetFileName(f)))
                     .ToArray();
 
                 if (Settings.IgnoreCurrent)
@@ -127,10 +130,17 @@ namespace Model
                     toCopy = toCopy.Where(f => !f.Contains(todayStr)).ToArray();
                 }
 
-                foreach (var file in toCopy.Where(f => !archived.Contains(f)))
+                foreach (var file in toCopy)
                 {
-                    var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(file));
-                    File.Copy(file, Path.Combine(file, outfile), true);
+                    try 
+                    {
+                        var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(file));
+                        File.Copy(file, Path.Combine(file, outfile), true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error copying remote file: {ex.Message}");
+                    }
                 }
             }
 
@@ -143,6 +153,8 @@ namespace Model
                 {
                     toCopy = Directory.GetFiles(Settings.CopyLatestDirPath)
                         .Where(f => f.EndsWith($".{ext}"))
+                        .Where(f => !archived.Contains(Path.GetFileName(f)))
+                        .Where(f => !datadir.Contains(Path.GetFileName(f)))
                         .Where(f => !f.Contains(todayStr))
                         .OrderByDescending(f => f)
                         .FirstOrDefault();
@@ -151,14 +163,23 @@ namespace Model
                 {
                     toCopy = Directory.GetFiles(Settings.CopyLatestDirPath)
                         .Where(f => f.EndsWith($".{ext}"))
+                        .Where(f => !archived.Contains(Path.GetFileName(f)))
+                        .Where(f => !datadir.Contains(Path.GetFileName(f)))
                         .OrderByDescending(f => f)
                         .FirstOrDefault();
                 }
 
                 if (toCopy != null)
                 {
-                    var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(toCopy));
-                    File.Copy(toCopy, Path.Combine(toCopy, outfile), true);
+                    try
+                    {
+                        var outfile = Path.Combine(Settings.SourceDirPath, Path.GetFileName(toCopy));
+                        File.Copy(toCopy, Path.Combine(toCopy, outfile), true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error copying remote file: {ex.Message}");
+                    }
                 }
             }
 
@@ -179,7 +200,14 @@ namespace Model
             var pulled = Directory.GetFiles(Settings.SourceDirPath).Select(p => Path.GetFileName(p));
             foreach (var file in archived.Intersect(pulled))
             {
-                Directory.Delete(Path.Combine(Settings.SourceDirPath, file));
+                try
+                {
+                    Directory.Delete(Path.Combine(Settings.SourceDirPath, file));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deleting file: {ex.Message}");
+                }
             }
 
             Files = Directory.GetFiles(Settings.SourceDirPath)
